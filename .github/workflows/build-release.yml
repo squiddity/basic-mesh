@@ -1,0 +1,133 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      openwrt_version:
+        description: 'Override OpenWrt version (leave empty to use openwrt-versions.json)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  load-versions:
+    runs-on: ubuntu-24.04
+    outputs:
+      versions: ${{ steps.set-versions.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-versions
+        run: |
+          if [ -n "${{ inputs.openwrt_version }}" ]; then
+            echo "versions=[\"${{ inputs.openwrt_version }}\"]" >> "$GITHUB_OUTPUT"
+          else
+            versions=$(cat openwrt-versions.json)
+            echo "versions=$versions" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: load-versions
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        openwrt_version: ${{ fromJson(needs.load-versions.outputs.versions) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: basic-mesh
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gawk unzip file python3 python3-distutils libncurses-dev zstd
+
+      - name: Cache OpenWrt SDK
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: openwrt-sdk
+          key: openwrt-sdk-${{ matrix.openwrt_version }}-qualcommax-ipq807x
+
+      - name: Download OpenWrt SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          VERSION=${{ matrix.openwrt_version }}
+          SDK_URL="https://downloads.openwrt.org/releases/${VERSION}/targets/qualcommax/ipq807x/"
+
+          # Find the exact SDK filename (GCC version varies between releases)
+          SDK_FILE=$(curl -s "$SDK_URL" | grep -oP 'openwrt-sdk-[^"]+\.tar\.zst' | head -1)
+          if [ -z "$SDK_FILE" ]; then
+            echo "ERROR: Could not find SDK for OpenWrt ${VERSION}"
+            exit 1
+          fi
+          echo "Downloading ${SDK_FILE}..."
+
+          curl -L -o sdk.tar.zst "${SDK_URL}${SDK_FILE}"
+          mkdir openwrt-sdk
+          tar --zstd -xf sdk.tar.zst -C openwrt-sdk --strip-components=1
+          rm sdk.tar.zst
+
+      - name: Patch PKG_VERSION from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "Setting PKG_VERSION to ${TAG_VERSION}"
+          sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${TAG_VERSION}/" basic-mesh/basic-mesh/Makefile
+          sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${TAG_VERSION}/" basic-mesh/luci-app-basic-mesh/Makefile
+
+      - name: Build packages
+        run: |
+          cd openwrt-sdk
+
+          # Add basic-mesh as a local feed
+          echo "src-link basicmesh $GITHUB_WORKSPACE/basic-mesh" >> feeds.conf.default
+          ./scripts/feeds update -a
+          ./scripts/feeds install basic-mesh luci-app-basic-mesh
+
+          make defconfig
+          make package/basic-mesh/compile V=s
+          make package/luci-app-basic-mesh/compile V=s
+
+      - name: Rename packages with OpenWrt version
+        run: |
+          VERSION=${{ matrix.openwrt_version }}
+          PKG_DIR="openwrt-sdk/bin/packages/aarch64_cortex-a53/basicmesh"
+          mkdir -p artifacts
+
+          for f in "$PKG_DIR"/*.apk; do
+            basename=$(basename "$f")
+            # Insert OpenWrt version before .apk extension
+            newname="${basename%.apk}-openwrt${VERSION}.apk"
+            cp "$f" "artifacts/${newname}"
+          done
+
+          echo "Artifacts:"
+          ls -la artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-openwrt-${{ matrix.openwrt_version }}
+          path: artifacts/*.apk
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release-assets/*.apk
