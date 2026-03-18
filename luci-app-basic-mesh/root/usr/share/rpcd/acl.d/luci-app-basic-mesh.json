@@ -1,8 +1,11 @@
 {
   "luci-app-basic-mesh": {
-    "description": "Grant UCI access to basic-mesh configuration",
+    "description": "Grant UCI and iw access for basic-mesh",
     "read": {
-      "uci": [ "basic-mesh" ]
+      "uci": [ "basic-mesh" ],
+      "file": {
+        "/usr/sbin/iw": [ "exec" ]
+      }
     },
     "write": {
       "uci": [ "basic-mesh" ]

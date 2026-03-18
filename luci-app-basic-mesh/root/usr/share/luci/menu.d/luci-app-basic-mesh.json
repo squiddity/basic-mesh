@@ -2,12 +2,27 @@
   "admin/network/basic-mesh": {
     "title": "Mesh Params",
     "action": {
-      "type": "view",
-      "path": "basic-mesh/index"
+      "type": "firstchild"
     },
     "depends": {
       "acl": [ "luci-app-basic-mesh" ]
     },
     "order": 70
+  },
+  "admin/network/basic-mesh/config": {
+    "title": "Configuration",
+    "action": {
+      "type": "view",
+      "path": "basic-mesh/index"
+    },
+    "order": 10
+  },
+  "admin/network/basic-mesh/status": {
+    "title": "Status",
+    "action": {
+      "type": "view",
+      "path": "basic-mesh/status"
+    },
+    "order": 20
   }
 }
