@@ -1,0 +1,82 @@
+#!/bin/sh
+#
+# basic-mesh-apply <interface>
+#
+# Reads mesh_param options from UCI config for the given interface
+# and applies them via: iw dev <interface> set mesh_param <param> <value>
+#
+# Only options explicitly set in UCI are applied; others keep their kernel defaults.
+
+IFACE="$1"
+
+if [ -z "$IFACE" ]; then
+	echo "Usage: basic-mesh-apply <interface>" >&2
+	exit 1
+fi
+
+# Check that a UCI section exists for this interface
+SECTION=$(uci -q get "basic-mesh.${IFACE}")
+if [ -z "$SECTION" ]; then
+	logger -t basic-mesh "No config section found for interface '${IFACE}', skipping"
+	exit 0
+fi
+
+if [ "$SECTION" != "mesh_params" ]; then
+	logger -t basic-mesh "Section '${IFACE}' is not of type mesh_params, skipping"
+	exit 0
+fi
+
+logger -t basic-mesh "Applying mesh_params for interface '${IFACE}'"
+
+PARAMS="
+mesh_retry_timeout
+mesh_confirm_timeout
+mesh_holding_timeout
+mesh_max_peer_links
+mesh_max_retries
+mesh_ttl
+mesh_element_ttl
+mesh_auto_open_plinks
+mesh_hwmp_max_preq_retries
+mesh_path_refresh_time
+mesh_min_discovery_timeout
+mesh_hwmp_active_path_timeout
+mesh_hwmp_preq_min_interval
+mesh_hwmp_net_diameter_traversal_time
+mesh_hwmp_rootmode
+mesh_hwmp_rann_interval
+mesh_gate_announcements
+mesh_fwding
+mesh_sync_offset_max_neighs
+mesh_rssi_threshold
+mesh_hwmp_active_path_to_root_timeout
+mesh_hwmp_root_interval
+mesh_hwmp_confirmation_interval
+mesh_power_mode
+mesh_awake_window
+mesh_plink_timeout
+mesh_connected_to_gate
+mesh_nolearn
+mesh_connected_to_as
+"
+
+APPLIED=0
+ERRORS=0
+
+for PARAM in $PARAMS; do
+	VALUE=$(uci -q get "basic-mesh.${IFACE}.${PARAM}")
+	[ -z "$VALUE" ] && continue
+
+	if iw dev "$IFACE" set mesh_param "$PARAM" "$VALUE" 2>/dev/null; then
+		logger -t basic-mesh "  set ${PARAM}=${VALUE}"
+		APPLIED=$((APPLIED + 1))
+	else
+		logger -t basic-mesh "  ERROR: failed to set ${PARAM}=${VALUE}"
+		ERRORS=$((ERRORS + 1))
+	fi
+done
+
+logger -t basic-mesh "Done for '${IFACE}': ${APPLIED} applied, ${ERRORS} errors"
+
+[ "$ERRORS" -gt 0 ] && exit 1
+exit 0

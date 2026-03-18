@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# /etc/hotplug.d/iface/30-basic-mesh
+#
+# Applies 802.11s mesh_param settings from UCI when a mesh interface comes up.
+# Checks both the logical interface name (INTERFACE) and the physical device
+# name (DEVICE) against UCI sections in /etc/config/basic-mesh.
+
+[ "${ACTION}" = "ifup" ] || exit 0
+
+apply_if_configured() {
+	local iface="$1"
+	[ -z "$iface" ] && return
+
+	local section
+	section=$(uci -q get "basic-mesh.${iface}")
+	[ "$section" = "mesh_params" ] || return
+
+	basic-mesh-apply "$iface"
+}
+
+# Try physical device name first (e.g. mesh0, wlan0-mesh)
+apply_if_configured "${DEVICE}"
+
+# Also try the logical interface name if it differs (e.g. 'mesh' in /etc/config/network)
+[ "${INTERFACE}" != "${DEVICE}" ] && apply_if_configured "${INTERFACE}"
+
+exit 0

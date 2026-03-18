@@ -1,0 +1,11 @@
+{
+  "luci-app-basic-mesh": {
+    "description": "Grant UCI access to basic-mesh configuration",
+    "read": {
+      "uci": [ "basic-mesh" ]
+    },
+    "write": {
+      "uci": [ "basic-mesh" ]
+    }
+  }
+}

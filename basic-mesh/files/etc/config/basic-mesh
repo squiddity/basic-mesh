@@ -1,0 +1,37 @@
+# basic-mesh UCI configuration
+#
+# Add one 'mesh_params' section per mesh interface.
+# The section name must match the interface name (e.g. mesh0, wlan0-mesh).
+# Only options that are set will be applied; unset options use kernel defaults.
+#
+# Example:
+# config mesh_params 'mesh0'
+#	option mesh_retry_timeout '100'
+#	option mesh_confirm_timeout '100'
+#	option mesh_holding_timeout '100'
+#	option mesh_max_peer_links '6'
+#	option mesh_max_retries '3'
+#	option mesh_ttl '31'
+#	option mesh_element_ttl '31'
+#	option mesh_auto_open_plinks '1'
+#	option mesh_hwmp_max_preq_retries '4'
+#	option mesh_path_refresh_time '1000'
+#	option mesh_min_discovery_timeout '100'
+#	option mesh_hwmp_active_path_timeout '5000'
+#	option mesh_hwmp_preq_min_interval '10'
+#	option mesh_hwmp_net_diameter_traversal_time '50'
+#	option mesh_hwmp_rootmode '0'
+#	option mesh_hwmp_rann_interval '5000'
+#	option mesh_gate_announcements '0'
+#	option mesh_fwding '1'
+#	option mesh_sync_offset_max_neighs '50'
+#	option mesh_rssi_threshold '0'
+#	option mesh_hwmp_active_path_to_root_timeout '6000'
+#	option mesh_hwmp_root_interval '5000'
+#	option mesh_hwmp_confirmation_interval '2000'
+#	option mesh_power_mode '0'
+#	option mesh_awake_window '10'
+#	option mesh_plink_timeout '0'
+#	option mesh_connected_to_gate '0'
+#	option mesh_nolearn '0'
+#	option mesh_connected_to_as '0'

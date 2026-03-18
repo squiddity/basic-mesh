@@ -1,0 +1,13 @@
+{
+  "admin/network/basic-mesh": {
+    "title": "Mesh Params",
+    "action": {
+      "type": "view",
+      "path": "basic-mesh/index"
+    },
+    "depends": {
+      "acl": [ "luci-app-basic-mesh" ]
+    },
+    "order": 70
+  }
+}
