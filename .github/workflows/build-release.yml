@@ -109,17 +109,11 @@ jobs:
           echo "Artifacts:"
           ls -la artifacts/
 
-      - name: Upload basic-mesh artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.openwrt_version }}-basic-mesh
-          path: artifacts/basic-mesh-*.apk
-
-      - name: Upload luci-app-basic-mesh artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.openwrt_version }}-luci-app-basic-mesh
-          path: artifacts/luci-app-basic-mesh-*.apk
+          name: packages-openwrt-${{ matrix.openwrt_version }}
+          path: artifacts/*.apk
 
   release:
     needs: build
