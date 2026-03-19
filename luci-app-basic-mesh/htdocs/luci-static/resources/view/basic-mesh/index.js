@@ -3,6 +3,7 @@
 'require form';
 'require uci';
 'require ui';
+'require fs';
 
 /*
  * LuCI view for basic-mesh: manages 802.11s mesh_param settings per interface.
@@ -124,7 +125,39 @@ var TEMPLATES = {
 
 return view.extend({
 
-	render: function() {
+	load: function() {
+		return Promise.all([
+			uci.load('wireless'),
+			fs.exec('/usr/sbin/iw', ['dev'])
+		]);
+	},
+
+	render: function(data) {
+		// Discover mesh interfaces from UCI wireless config
+		var meshIfaces = [];
+		var seen = {};
+
+		uci.sections('wireless', 'wifi-iface').forEach(function(s) {
+			if (s.mode === 'mesh' && s.ifname && !seen[s.ifname]) {
+				seen[s.ifname] = true;
+				meshIfaces.push(s.ifname);
+			}
+		});
+
+		// Also discover active mesh interfaces from iw dev output
+		var iwStdout = (data[1] && data[1].stdout) || '';
+		var currentIface = null;
+		iwStdout.split('\n').forEach(function(line) {
+			var m = line.match(/^\s*Interface\s+(\S+)/);
+			if (m)
+				currentIface = m[1];
+			if (/\s*type mesh point/.test(line) && currentIface && !seen[currentIface]) {
+				seen[currentIface] = true;
+				meshIfaces.push(currentIface);
+				currentIface = null;
+			}
+		});
+
 		var m = new form.Map('basic-mesh',
 			_('Mesh Parameters'),
 			_('Configure 802.11s mesh_param settings per mesh interface. ' +
@@ -137,18 +170,57 @@ return view.extend({
 		var s = m.section(form.TypedSection, 'mesh_params', _('Mesh Interfaces'));
 		s.anonymous = false;
 		s.addremove = true;
-		s.addbtntitle = _('Add mesh interface');
 
 		s.sectiontitle = function(section_id) {
 			return section_id;
 		};
 
-		// Validate that section names look like interface names
-		s.validate = function(section_id) {
-			if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(section_id)) {
-				return _('Interface name must start with a letter or digit and contain only letters, digits, dots, hyphens, and underscores.');
+		// Override the add control to show a dropdown of unconfigured mesh interfaces
+		s.renderSectionAdd = function(extra_class) {
+			var configured = {};
+			uci.sections('basic-mesh', 'mesh_params').forEach(function(sec) {
+				configured[sec['.name']] = true;
+			});
+
+			var available = meshIfaces.filter(function(iface) {
+				return !configured[iface];
+			});
+
+			if (available.length === 0) {
+				var msg = meshIfaces.length === 0
+					? _('No mesh interfaces found in wireless configuration or running system.')
+					: _('All mesh interfaces are already configured.');
+				return E('div', { 'class': 'cbi-section-create' },
+					E('em', {}, msg));
 			}
-			return true;
+
+			var el = E('div', { 'class': 'cbi-section-create' });
+
+			var selectEl = E('select', { 'class': 'cbi-input-select' });
+			available.forEach(function(iface) {
+				selectEl.appendChild(E('option', { 'value': iface }, iface));
+			});
+			el.appendChild(selectEl);
+
+			var self = this;
+			el.appendChild(E('button', {
+				'class': 'btn cbi-button-add',
+				'click': function(ev) {
+					var name = selectEl.value;
+					if (!name) return;
+					uci.add('basic-mesh', 'mesh_params', name);
+					return self.map.save(null, true).then(function() {
+						return self.map.load();
+					}).then(function() {
+						return self.map.render();
+					}).then(function(node) {
+						self.map.root.parentNode.replaceChild(node, self.map.root);
+						self.map.root = node;
+					});
+				}
+			}, _('Add mesh interface')));
+
+			return el;
 		};
 
 		// --- Template dropdown ---
