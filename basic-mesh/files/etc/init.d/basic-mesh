@@ -1,0 +1,18 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+reload_service() {
+	local iface
+	for iface in $(uci -q show basic-mesh | sed -n 's/^basic-mesh\.\([^.]*\)=mesh_params$/\1/p'); do
+		basic-mesh-apply "$iface"
+	done
+}
+
+start() {
+	reload_service
+}
+
+restart() {
+	reload_service
+}

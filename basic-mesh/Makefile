@@ -35,8 +35,14 @@ define Package/basic-mesh/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/etc/uci-defaults/99-basic-mesh $(1)/etc/uci-defaults/99-basic-mesh
 
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./files/etc/init.d/basic-mesh $(1)/etc/init.d/basic-mesh
+
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) ./files/usr/bin/basic-mesh-apply $(1)/usr/bin/basic-mesh-apply
+
+	$(INSTALL_DIR) $(1)/usr/share/rpcd/ucitrack
+	$(INSTALL_DATA) ./files/usr/share/rpcd/ucitrack/basic-mesh.json $(1)/usr/share/rpcd/ucitrack/basic-mesh.json
 endef
 
 $(eval $(call BuildPackage,basic-mesh))

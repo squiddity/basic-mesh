@@ -1,0 +1,4 @@
+{
+  "config": "basic-mesh",
+  "init": ["basic-mesh"]
+}
