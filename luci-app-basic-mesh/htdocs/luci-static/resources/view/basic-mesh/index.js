@@ -94,6 +94,12 @@ var TEMPLATE_BASE = {
  *   - mesh_gate_announcements 0  (not a gate)
  *   - mesh_connected_to_gate 0  (will discover a gate via HWMP)
  *   - mesh_max_peer_links 6  (typical leaf/relay peer count)
+ *
+ * peer-relay: like peer, but statically declares itself connected to a gate.
+ *   - mesh_connected_to_gate 1  (advertises gate reachability to downstream nodes)
+ *   Use this for nodes with a known stable path to the gateway, so that
+ *   downstream peers can use this node as a relay without waiting for HWMP
+ *   path discovery to determine gate reachability.
  */
 var TEMPLATES = {
 	gateway: Object.assign({}, TEMPLATE_BASE, {
@@ -107,6 +113,12 @@ var TEMPLATES = {
 		mesh_hwmp_rootmode:     0,
 		mesh_gate_announcements: 0,
 		mesh_connected_to_gate:  0,
+	}),
+	'peer-relay': Object.assign({}, TEMPLATE_BASE, {
+		mesh_max_peer_links:    6,
+		mesh_hwmp_rootmode:     0,
+		mesh_gate_announcements: 0,
+		mesh_connected_to_gate:  1,
 	}),
 };
 
@@ -150,9 +162,10 @@ return view.extend({
 			  'the chosen node role. You can then adjust any individual value before saving. ' +
 			  'Selecting <em>Manual</em> leaves all current values unchanged.')
 		);
-		o_tmpl.value('',        _('Manual'));
-		o_tmpl.value('gateway', _('Gateway / Portal \u2014 has internet or LAN uplink'));
-		o_tmpl.value('peer',    _('Peer \u2014 mesh only, no uplink (may host AP on another interface)'));
+		o_tmpl.value('',           _('Manual'));
+		o_tmpl.value('gateway',    _('Gateway / Portal \u2014 has internet or LAN uplink'));
+		o_tmpl.value('peer',       _('Peer \u2014 mesh only, no uplink (may host AP on another interface)'));
+		o_tmpl.value('peer-relay', _('Peer Relay \u2014 mesh only, stable path to gateway (advertises gate reachability)'));
 		o_tmpl.optional = true;
 		o_tmpl.onchange = function(ev, section_id, value) {
 			var tmpl = TEMPLATES[value];
