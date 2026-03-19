@@ -28,7 +28,7 @@ return view.extend({
 
 			interfaces.forEach(function(iface) {
 				promises.push(
-					fs.exec('/usr/sbin/iw', ['dev', iface, 'get', 'mesh_param'])
+					fs.exec('/usr/sbin/iw', ['dev', iface, 'mesh_param', 'dump'])
 						.then(function(r) {
 							return { iface: iface, type: 'mesh_param', data: (r && r.stdout) || '' };
 						})
