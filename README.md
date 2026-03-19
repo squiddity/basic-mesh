@@ -126,18 +126,39 @@ iw dev mesh0 station dump
 
 ## Parameter reference
 
-The full set of supported parameters with descriptions is visible in the LuCI UI. Key parameters by category:
+The full set of supported parameters with descriptions is visible in the LuCI UI. All parameters are optional — unset values use kernel defaults.
 
-| Category | Parameter | Notes |
+| Category | Parameter | Description |
 |---|---|---|
-| Forwarding | `mesh_fwding` | Must be `1` for traffic to transit between nodes |
-| Forwarding | `mesh_nolearn` | Set `0`; `1` disables path learning and breaks unicast |
-| HWMP routing | `mesh_hwmp_rootmode` | `4` (RANN+PREP) on gateway, `0` on peers |
-| Gate | `mesh_gate_announcements` | `1` on gateway so peers can discover it |
-| Gate | `mesh_connected_to_gate` | `1` on gateway and peer-relay nodes |
-| Peer links | `mesh_max_peer_links` | `32` for gateway, `6` for typical peer |
-| TTL | `mesh_ttl` | Default `31`; do not set to `0` |
-| TTL | `mesh_element_ttl` | Default `31`; do not set to `0` |
+| Peer links | `mesh_retry_timeout` | Retry timeout (ms) before attempting to establish a new peer link |
+| Peer links | `mesh_confirm_timeout` | Confirm timeout (ms) before cancelling a peer link open request |
+| Peer links | `mesh_holding_timeout` | Holding timeout (ms) before allowing peer link re-establishment |
+| Peer links | `mesh_max_peer_links` | Maximum number of simultaneous peer links (0–255) |
+| Peer links | `mesh_max_retries` | Maximum peer link open retries before giving up (0–16) |
+| Peer links | `mesh_auto_open_plinks` | `1` = automatically open peer links; `0` = manual only |
+| Peer links | `mesh_plink_timeout` | Inactivity timeout (seconds) before tearing down a peer link; `0` = disabled |
+| Peer links | `mesh_rssi_threshold` | RSSI threshold (dBm) below which peer links are not established |
+| Forwarding | `mesh_fwding` | `1` = forward mesh frames between peers; `0` = disabled |
+| Forwarding | `mesh_nolearn` | `1` = disable path learning, use only HWMP discovery; `0` = learn paths |
+| Forwarding | `mesh_ttl` | Default TTL for transmitted mesh frames |
+| Forwarding | `mesh_element_ttl` | Default TTL for HWMP path selection elements |
+| HWMP routing | `mesh_hwmp_rootmode` | `0`=off, `1`=RANN, `2`=proactive PREQ, `3`=proactive PREQ+PREP, `4`=RANN+PREP |
+| HWMP routing | `mesh_hwmp_max_preq_retries` | PREQ retries before notifying the originator of path failure |
+| HWMP routing | `mesh_hwmp_preq_min_interval` | Minimum interval (ms) between PREQ frames to the same destination |
+| HWMP routing | `mesh_hwmp_rann_interval` | Interval (ms) between RANN frames |
+| HWMP routing | `mesh_hwmp_root_interval` | Interval (ms) between proactive PREQ frames from a root node |
+| HWMP routing | `mesh_hwmp_active_path_timeout` | Active path state timeout (ms) |
+| HWMP routing | `mesh_hwmp_active_path_to_root_timeout` | Active path-to-root state timeout (ms) |
+| HWMP routing | `mesh_hwmp_net_diameter_traversal_time` | Estimated time (ms) to traverse the mesh network diameter |
+| HWMP routing | `mesh_hwmp_confirmation_interval` | Minimum interval (ms) between path confirmation PREQs from a root node |
+| Path selection | `mesh_path_refresh_time` | Interval (ms) at which active paths are refreshed |
+| Path selection | `mesh_min_discovery_timeout` | Minimum path discovery timeout (ms) |
+| Gate | `mesh_gate_announcements` | `1` = node is a mesh gate and sends gate announcement frames |
+| Gate | `mesh_connected_to_gate` | `1` = node has a path to a mesh gate (advertised in beacons) |
+| Gate | `mesh_connected_to_as` | `1` = node is connected to an authentication server |
+| Sync | `mesh_sync_offset_max_neighs` | Maximum number of neighbours used for beacon timing synchronisation |
+| Power | `mesh_power_mode` | `0`=active, `1`=light sleep, `2`=deep sleep |
+| Power | `mesh_awake_window` | Awake window duration (ms) when in a power-save mode |
 
 ---
 
