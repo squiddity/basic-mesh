@@ -47,7 +47,7 @@ mesh_hwmp_rootmode
 mesh_hwmp_rann_interval
 mesh_gate_announcements
 mesh_fwding
-mesh_sync_offset_max_neighs
+mesh_sync_offset_max_neighor
 mesh_rssi_threshold
 mesh_hwmp_active_path_to_root_timeout
 mesh_hwmp_root_interval
