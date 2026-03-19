@@ -67,6 +67,18 @@ for PARAM in $PARAMS; do
 	VALUE=$(uci -q get "basic-mesh.${IFACE}.${PARAM}")
 	[ -z "$VALUE" ] && continue
 
+	# Validate mesh_power_mode accepts only active, light, or deep
+	if [ "$PARAM" = "mesh_power_mode" ]; then
+		case "$VALUE" in
+			active|light|deep) ;;
+			*)
+				logger -t basic-mesh "  ERROR: mesh_power_mode must be active, light, or deep (got '${VALUE}')"
+				ERRORS=$((ERRORS + 1))
+				continue
+				;;
+		esac
+	fi
+
 	if iw dev "$IFACE" set mesh_param "$PARAM" "$VALUE" 2>/dev/null; then
 		logger -t basic-mesh "  set ${PARAM}=${VALUE}"
 		APPLIED=$((APPLIED + 1))

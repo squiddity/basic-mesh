@@ -39,7 +39,7 @@ var MESH_PARAMS = [
 	{ name: 'mesh_hwmp_active_path_to_root_timeout', title: 'HWMP Active Path-to-Root Timeout',    description: 'Active path-to-root state timeout in ms.' },
 	{ name: 'mesh_hwmp_root_interval',               title: 'HWMP Root Interval',                  description: 'Interval in ms between PREQ frames sent by a root node.' },
 	{ name: 'mesh_hwmp_confirmation_interval',       title: 'HWMP Confirmation Interval',          description: 'Minimum interval in ms between PREQ frames sent by a root node for path confirmation.' },
-	{ name: 'mesh_power_mode',                       title: 'Power Mode',                          description: '0=active, 1=light sleep, 2=deep sleep.' },
+	{ name: 'mesh_power_mode',                       title: 'Power Mode',                          description: 'Mesh power save mode.', values: ['active', 'light', 'deep'] },
 	{ name: 'mesh_awake_window',                     title: 'Awake Window',                        description: 'Awake window duration in ms when in power-save mode.' },
 	{ name: 'mesh_plink_timeout',                    title: 'Peer Link Timeout',                   description: 'Inactivity timeout in seconds before a peer link is torn down (0 = disabled).' },
 	{ name: 'mesh_connected_to_gate',                title: 'Connected to Gate',                   description: '1 = this node is connected to a mesh gate.' },
@@ -72,7 +72,7 @@ var TEMPLATE_BASE = {
 	mesh_hwmp_active_path_to_root_timeout: 6000,
 	mesh_hwmp_root_interval:               5000,
 	mesh_hwmp_confirmation_interval:       2000,
-	mesh_power_mode:                       0,
+	mesh_power_mode:                       'active',
 	mesh_awake_window:                     10,
 	mesh_plink_timeout:                    0,
 	mesh_nolearn:                          0,
@@ -179,16 +179,26 @@ return view.extend({
 		// --- Individual mesh_param fields ---
 		for (var i = 0; i < MESH_PARAMS.length; i++) {
 			var p = MESH_PARAMS[i];
-			var o = s.option(form.Value, p.name, _(p.title), _(p.description));
-			o.optional = true;
-			o.placeholder = _('(kernel default)');
-			o.validate = function(section_id, value) {
-				if (value === '' || value === null)
+			var o;
+
+			if (p.values) {
+				o = s.option(form.ListValue, p.name, _(p.title), _(p.description));
+				o.value('', _('(kernel default)'));
+				for (var j = 0; j < p.values.length; j++)
+					o.value(p.values[j]);
+				o.optional = true;
+			} else {
+				o = s.option(form.Value, p.name, _(p.title), _(p.description));
+				o.optional = true;
+				o.placeholder = _('(kernel default)');
+				o.validate = function(section_id, value) {
+					if (value === '' || value === null)
+						return true;
+					if (!/^-?\d+$/.test(value))
+						return _('Must be an integer value');
 					return true;
-				if (!/^-?\d+$/.test(value))
-					return _('Must be an integer value');
-				return true;
-			};
+				};
+			}
 			paramOpts[p.name] = o;
 		}
 
