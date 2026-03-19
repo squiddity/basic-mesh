@@ -6,6 +6,8 @@
 # Checks both the logical interface name (INTERFACE) and the physical device
 # name (DEVICE) against UCI sections in /etc/config/basic-mesh.
 
+logger -t basic-mesh-hotplug "triggered: ACTION=${ACTION} INTERFACE=${INTERFACE} DEVICE=${DEVICE}"
+
 [ "${ACTION}" = "ifup" ] || exit 0
 
 apply_if_configured() {
@@ -14,8 +16,17 @@ apply_if_configured() {
 
 	local section
 	section=$(uci -q get "basic-mesh.${iface}")
-	[ "$section" = "mesh_params" ] || return
+	if [ -z "$section" ]; then
+		logger -t basic-mesh-hotplug "no UCI section for '${iface}', skipping"
+		return
+	fi
 
+	if [ "$section" != "mesh_params" ]; then
+		logger -t basic-mesh-hotplug "section '${iface}' is type '${section}', not mesh_params, skipping"
+		return
+	fi
+
+	logger -t basic-mesh-hotplug "applying mesh params for '${iface}'"
 	basic-mesh-apply "$iface"
 }
 
