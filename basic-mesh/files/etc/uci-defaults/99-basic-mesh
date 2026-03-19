@@ -1,0 +1,4 @@
+#!/bin/sh
+# Ensure the UCI config file exists (may have been removed manually)
+touch /etc/config/basic-mesh
+exit 0

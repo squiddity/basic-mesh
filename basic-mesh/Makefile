@@ -32,6 +32,9 @@ define Package/basic-mesh/install
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
 	$(INSTALL_BIN) ./files/etc/hotplug.d/iface/30-basic-mesh $(1)/etc/hotplug.d/iface/30-basic-mesh
 
+	$(INSTALL_DIR) $(1)/etc/uci-defaults
+	$(INSTALL_BIN) ./files/etc/uci-defaults/99-basic-mesh $(1)/etc/uci-defaults/99-basic-mesh
+
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) ./files/usr/bin/basic-mesh-apply $(1)/usr/bin/basic-mesh-apply
 endef
