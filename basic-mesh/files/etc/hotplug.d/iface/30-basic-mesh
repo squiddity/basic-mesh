@@ -4,63 +4,62 @@
 #
 # Applies 802.11s mesh_param settings from UCI when a mesh interface comes up.
 #
-# The hotplug INTERFACE is the network-level name (e.g. 'mesh') and DEVICE is
-# typically the bridge (e.g. 'br-mesh'). Neither is the actual wireless
-# interface (e.g. 'mesh0'). To find it, we look up wifi-iface sections in
-# /etc/config/wireless where mode=mesh and network matches INTERFACE, then
-# use the ifname from that section.
+# There are two categories of configured mesh interfaces:
+#
+# "Claimed" — the ifname appears in a wifi-iface section in /etc/config/wireless
+#   with mode=mesh. For these, we know which network they belong to, so we only
+#   apply params when the matching network's ifup fires.
+#
+# "Unclaimed" — the ifname is configured in basic-mesh but does not appear in
+#   any wifi-iface ifname (e.g. auto-generated names like wlan0-mesh discovered
+#   via iw). For these, we apply params on every ifup event since we cannot tie
+#   them to a specific network.
 
 logger -t basic-mesh-hotplug "triggered: ACTION=${ACTION} INTERFACE=${INTERFACE} DEVICE=${DEVICE}"
 
 [ "${ACTION}" = "ifup" ] || exit 0
 
-# Find mesh wifi-iface sections whose 'network' matches the hotplug INTERFACE,
-# resolve their ifname, and apply basic-mesh params if configured.
-apply_mesh_ifaces() {
-	local net="$1"
-	[ -z "$net" ] && return
+# Build a list of all wifi-iface ifnames with mode=mesh, and apply params
+# for any whose network matches the hotplug INTERFACE.
+# Returns the set of "claimed" ifnames via the CLAIMED variable.
+CLAIMED=""
 
-	local found=0
-	local section ifname wifi_net wifi_mode
+for section in $(uci -q show wireless | sed -n 's/^wireless\.\([^.]*\)=wifi-iface$/\1/p'); do
+	wifi_mode=$(uci -q get "wireless.${section}.mode")
+	[ "$wifi_mode" = "mesh" ] || continue
 
-	for section in $(uci -q show wireless | sed -n 's/^wireless\.\([^.]*\)=wifi-iface$/\1/p'); do
-		wifi_mode=$(uci -q get "wireless.${section}.mode")
-		[ "$wifi_mode" = "mesh" ] || continue
+	ifname=$(uci -q get "wireless.${section}.ifname")
+	if [ -z "$ifname" ]; then
+		logger -t basic-mesh-hotplug "wireless.${section} has mode=mesh but no ifname set, cannot claim"
+		continue
+	fi
 
-		wifi_net=$(uci -q get "wireless.${section}.network")
-		# network defaults to 'lan' if unset
-		: "${wifi_net:=lan}"
+	CLAIMED="${CLAIMED} ${ifname}"
 
-		[ "$wifi_net" = "$net" ] || continue
+	wifi_net=$(uci -q get "wireless.${section}.network")
+	: "${wifi_net:=lan}"
 
-		ifname=$(uci -q get "wireless.${section}.ifname")
-		if [ -z "$ifname" ]; then
-			logger -t basic-mesh-hotplug "wireless.${section} has mode=mesh, network=${net} but no ifname set, skipping"
-			continue
-		fi
+	[ "$wifi_net" = "${INTERFACE}" ] || continue
 
-		logger -t basic-mesh-hotplug "wireless.${section}: network=${net} -> ifname=${ifname}"
-		found=1
+	bm_type=$(uci -q get "basic-mesh.${ifname}")
+	if [ "$bm_type" != "mesh_params" ]; then
+		logger -t basic-mesh-hotplug "claimed ${ifname} (wireless.${section}, network=${wifi_net}) — no basic-mesh config, skipping"
+		continue
+	fi
 
-		local bm_section
-		bm_section=$(uci -q get "basic-mesh.${ifname}")
-		if [ -z "$bm_section" ]; then
-			logger -t basic-mesh-hotplug "no basic-mesh config for '${ifname}', skipping"
-			continue
-		fi
+	logger -t basic-mesh-hotplug "claimed ${ifname} (wireless.${section}, network=${wifi_net}) — applying"
+	basic-mesh-apply "$ifname"
+done
 
-		if [ "$bm_section" != "mesh_params" ]; then
-			logger -t basic-mesh-hotplug "basic-mesh.${ifname} is type '${bm_section}', not mesh_params, skipping"
-			continue
-		fi
+# Now handle unclaimed basic-mesh sections: apply on every ifup.
+for bm_iface in $(uci -q show basic-mesh | sed -n 's/^basic-mesh\.\([^.]*\)=mesh_params$/\1/p'); do
+	# Skip if this ifname is claimed by a wifi-iface section
+	case " ${CLAIMED} " in
+		*" ${bm_iface} "*) continue ;;
+	esac
 
-		logger -t basic-mesh-hotplug "applying mesh params for '${ifname}'"
-		basic-mesh-apply "$ifname"
-	done
-
-	[ "$found" -eq 0 ] && logger -t basic-mesh-hotplug "no wireless mesh interface found for network '${net}'"
-}
-
-apply_mesh_ifaces "${INTERFACE}"
+	logger -t basic-mesh-hotplug "unclaimed ${bm_iface} — applying on ifup ${INTERFACE}"
+	basic-mesh-apply "$bm_iface"
+done
 
 exit 0
