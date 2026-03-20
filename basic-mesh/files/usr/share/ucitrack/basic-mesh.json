@@ -1,4 +1,4 @@
 {
   "config": "basic-mesh",
-  "init": ["basic-mesh"]
+  "init": "basic-mesh"
 }
