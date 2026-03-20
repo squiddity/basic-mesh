@@ -1,4 +1,8 @@
 #!/bin/sh
 # Ensure the UCI config file exists (may have been removed manually)
 [ -f /etc/config/basic-mesh ] || touch /etc/config/basic-mesh
+
+# Enable the init script so mesh params are applied at boot
+/etc/init.d/basic-mesh enable
+
 exit 0
