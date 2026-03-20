@@ -19,6 +19,29 @@ logger -t basic-mesh-hotplug "triggered: ACTION=${ACTION} INTERFACE=${INTERFACE}
 
 [ "${ACTION}" = "ifup" ] || exit 0
 
+# Sync the bridge MAC address to match the mesh interface MAC.
+# Mismatched MACs between br-mesh and mesh0 cause DHCP and ARP failures
+# because peers see frames from one MAC but replies are sourced from another.
+sync_bridge_mac() {
+	local mesh_if="$1"
+	local bridge_dev="$2"
+
+	[ -n "$bridge_dev" ] || return
+	[ -e "/sys/class/net/${bridge_dev}/bridge" ] || return
+	[ -e "/sys/class/net/${mesh_if}/address" ] || return
+
+	local mesh_mac bridge_mac
+	mesh_mac=$(cat "/sys/class/net/${mesh_if}/address" 2>/dev/null)
+	bridge_mac=$(cat "/sys/class/net/${bridge_dev}/address" 2>/dev/null)
+
+	[ -n "$mesh_mac" ] || return
+
+	if [ "$mesh_mac" != "$bridge_mac" ]; then
+		logger -t basic-mesh-hotplug "syncing ${bridge_dev} MAC to ${mesh_if} MAC (${mesh_mac})"
+		ip link set dev "$bridge_dev" address "$mesh_mac"
+	fi
+}
+
 # Build a list of all wifi-iface ifnames with mode=mesh, and apply params
 # for any whose network matches the hotplug INTERFACE.
 # Returns the set of "claimed" ifnames via the CLAIMED variable.
@@ -49,6 +72,7 @@ for section in $(uci -q show wireless | sed -n 's/^wireless\.\([^.]*\)=wifi-ifac
 
 	logger -t basic-mesh-hotplug "claimed ${ifname} (wireless.${section}, network=${wifi_net}) — applying"
 	basic-mesh-apply "$ifname"
+	sync_bridge_mac "$ifname" "$DEVICE"
 done
 
 # Now handle unclaimed basic-mesh sections: apply on every ifup.
