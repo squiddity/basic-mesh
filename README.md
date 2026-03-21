@@ -59,7 +59,7 @@ Settings are stored in `/etc/config/basic-mesh` using UCI. Each section correspo
 After installing `luci-app-basic-mesh`, navigate to **Network → Mesh Params** in LuCI.
 
 **To add a new interface:**
-1. Click **Add mesh interface** and enter the interface name (must match the actual interface, e.g. `mesh0`)
+1. Select a mesh interface from the **Add mesh interface** dropdown (auto-discovered from wireless config and active interfaces)
 2. Select a **Parameter Template** to populate sensible defaults for the node's role:
    - **Gateway / Portal** — node has an internet or LAN uplink; acts as mesh root and gate
    - **Peer** — mesh-only node with no uplink; relies on HWMP to discover the gateway
@@ -116,7 +116,7 @@ This reads the UCI config for `mesh0` and calls `iw dev mesh0 set mesh_param <pa
 
 ```sh
 # Show all current mesh_param values on an interface
-iw dev mesh0 get mesh_param
+iw dev mesh0 mesh_param dump
 
 # Show connected mesh peer stations
 iw dev mesh0 station dump
@@ -156,8 +156,8 @@ The full set of supported parameters with descriptions is visible in the LuCI UI
 | Gate | `mesh_gate_announcements` | `1` = node is a mesh gate and sends gate announcement frames |
 | Gate | `mesh_connected_to_gate` | `1` = node has a path to a mesh gate (advertised in beacons) |
 | Gate | `mesh_connected_to_as` | `1` = node is connected to an authentication server |
-| Sync | `mesh_sync_offset_max_neighs` | Maximum number of neighbours used for beacon timing synchronisation |
-| Power | `mesh_power_mode` | `0`=active, `1`=light sleep, `2`=deep sleep |
+| Sync | `mesh_sync_offset_max_neighor` | Maximum number of neighbours used for beacon timing synchronisation |
+| Power | `mesh_power_mode` | `active`, `light`, or `deep` |
 | Power | `mesh_awake_window` | Awake window duration (ms) when in a power-save mode |
 
 ---
@@ -173,6 +173,17 @@ The full set of supported parameters with descriptions is visible in the LuCI UI
 | `mesh_fwding` | `1` | `1` | `1` |
 | `mesh_nolearn` | `0` | `0` | `0` |
 | `mesh_ttl` | `31` | `31` | `31` |
+
+---
+
+## Tested configuration
+
+Initial testing confirmed basic mesh operation on a **Linksys MX4300** (Qualcomm IPQ8074) running OpenWrt 25.x with the following setup:
+
+- Second 5 GHz radio dedicated to 802.11s mesh
+- Separate `mesh` network interface with its own bridge (`br-mesh`)
+- Dedicated firewall zone and subnet for mesh traffic
+- Mesh interface `mesh0` configured with the `ifname` option in `/etc/config/wireless`
 
 ---
 
