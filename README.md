@@ -178,7 +178,7 @@ The full set of supported parameters with descriptions is visible in the LuCI UI
 
 ## Tested configuration
 
-Initial testing confirmed basic mesh operation on a **Linksys MX4300** (Qualcomm IPQ8074) running OpenWrt 25.x with the following setup:
+Initial testing confirmed basic mesh operation on two **Linksys MX4300** devices (Qualcomm IPQ8074) running OpenWrt 25.x with the following setup:
 
 - Second 5 GHz radio dedicated to 802.11s mesh
 - Separate `mesh` network interface with its own bridge (`br-mesh`)
