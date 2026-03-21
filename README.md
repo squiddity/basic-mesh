@@ -187,6 +187,12 @@ Initial testing confirmed basic mesh operation on a **Linksys MX4300** (Qualcomm
 
 ---
 
+## Acknowledgements
+
+Template parameter values and mesh role design were informed by analysis of [mesh11sd](https://github.com/openwrt/packages/tree/master/net/mesh11sd), a more full-featured 802.11s mesh management daemon for OpenWrt.
+
+---
+
 ## License
 
 GPL-2.0-or-later
