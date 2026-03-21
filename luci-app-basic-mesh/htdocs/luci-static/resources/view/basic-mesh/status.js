@@ -46,6 +46,16 @@ return view.extend({
 							return { iface: iface, type: 'station_dump', data: 'Error reading station dump' };
 						})
 				);
+
+				promises.push(
+					fs.exec('/usr/sbin/iw', ['dev', iface, 'mpath', 'dump'])
+						.then(function(r) {
+							return { iface: iface, type: 'mpath_dump', data: (r && r.stdout) || '' };
+						})
+						.catch(function() {
+							return { iface: iface, type: 'mpath_dump', data: 'Error reading mpath dump' };
+						})
+				);
 			});
 
 			return Promise.all(promises).then(function(results) {
@@ -174,6 +184,65 @@ return view.extend({
 						staSection.appendChild(table);
 						section.appendChild(staSection);
 					});
+				}
+			}
+
+			// --- Mesh Path Dump ---
+			section.appendChild(E('h4', {}, _('Mesh Paths')));
+
+			var mpathText = info.mpath_dump || '';
+			if (mpathText.trim() === '' || mpathText.indexOf('Error') === 0) {
+				section.appendChild(E('div', { 'class': 'alert-message notice' },
+					mpathText || _('No mesh paths available.')));
+			} else {
+				var mpaths = [];
+				var current = null;
+
+				mpathText.split('\n').forEach(function(line) {
+					var m = line.match(/^mpath\s+([0-9a-fA-F:]+)/);
+					if (m) {
+						current = { dest: m[1], fields: [] };
+						mpaths.push(current);
+					} else if (current) {
+						var kv = line.match(/^\s+(\S+)\s*:\s*(.+)$/);
+						if (kv)
+							current.fields.push({ key: kv[1].trim(), value: kv[2].trim() });
+					}
+				});
+
+				if (mpaths.length === 0) {
+					section.appendChild(E('div', { 'class': 'alert-message notice' },
+						_('No mesh paths available.')));
+				} else {
+					var mpathTable = E('table', { 'class': 'table' }, [
+						E('tr', { 'class': 'tr table-titles' }, [
+							E('th', { 'class': 'th' }, _('Destination')),
+							E('th', { 'class': 'th' }, _('Next Hop')),
+							E('th', { 'class': 'th' }, _('Hops')),
+							E('th', { 'class': 'th' }, _('SNR'))
+						])
+					]);
+
+					mpaths.forEach(function(mp) {
+						var dest = '-', nextHop = '-', hops = '-', snr = '-';
+						mp.fields.forEach(function(f) {
+							if (f.key === 'next hop') nextHop = f.value;
+							else if (f.key === 'hop count') hops = f.value;
+							else if (f.key === 'snr') snr = f.value;
+						});
+						mp.fields.forEach(function(f) {
+							if (f.key === 'dst') dest = f.value;
+						});
+
+						mpathTable.appendChild(E('tr', { 'class': 'tr' }, [
+							E('td', { 'class': 'td' }, dest),
+							E('td', { 'class': 'td' }, nextHop),
+							E('td', { 'class': 'td' }, hops),
+							E('td', { 'class': 'td' }, snr)
+						]));
+					});
+
+					section.appendChild(mpathTable);
 				}
 			}
 
