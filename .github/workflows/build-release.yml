@@ -84,7 +84,8 @@ jobs:
         run: |
           cd openwrt-sdk
 
-          # Add basic-mesh as a local feed
+          # Add basic-mesh as a local feed (remove stale entry from cached SDK first)
+          sed -i '/^src-link basicmesh /d' feeds.conf.default
           echo "src-link basicmesh $GITHUB_WORKSPACE/basic-mesh" >> feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install basic-mesh luci-app-basic-mesh
