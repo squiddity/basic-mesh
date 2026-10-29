@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=basic-mesh
 PKG_VERSION:=1.0.0
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_MAINTAINER:=
 PKG_LICENSE:=GPL-2.0-or-later
@@ -20,6 +20,10 @@ endef
 define Package/basic-mesh/description
   Manages 802.11s mesh_param settings via UCI and applies them using iw
   when a mesh interface comes up. Does not manage wireless or network config.
+endef
+
+define Package/basic-mesh/conffiles
+/etc/config/basic-mesh
 endef
 
 define Build/Compile
